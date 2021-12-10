@@ -30,6 +30,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import static scala.None.map;
+
 public class AverageHttpResponseTimeApp {
     public static void main(String[] args) throws IOException {
         System.out.println("start!");
@@ -79,7 +81,7 @@ public class AverageHttpResponseTimeApp {
                                             long start = System.currentTimeMillis();
                                             Request request = Dsl.get(url).build();
                                             CompletableFuture<Response> whenResponse = Dsl.asyncHttpClient().executeRequest(request).toCompletableFuture();
-                                            return whenResponse.thenCompose( response -> {
+                                            return whenResponse.thenCompose(response -> {
                                                 int duration = (int) (System.currentTimeMillis() - start);
                                                 return CompletableFuture.completedFuture(duration);
                                             });
@@ -92,5 +94,12 @@ public class AverageHttpResponseTimeApp {
                             }
                         })
                 ))
+        .map(res -> {
+            actor.tell(
+                    new MessageCacheResult(res.first(), res.second()),
+                    ActorRef.noSender()
+            );
+            return HttpResponse.create().withEntity(res.first() + ": " + res.second().toString());
+        });
     }
 }

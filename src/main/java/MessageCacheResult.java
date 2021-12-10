@@ -1,2 +1,5 @@
-package PACKAGE_NAME;public class MessageCacheResult {
+public class MessageCacheResult {
+    public MessageCacheResult(String url, long responseTime) {
+        t
+    }
 }
