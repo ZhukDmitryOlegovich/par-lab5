@@ -11,7 +11,7 @@ import akka.stream.javadsl.Flow;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import jdk.internal.util.xml.impl.Pair;
+import akka.japi.Pair;
 
 import java.io.IOException;
 import java.util.concurrent.CompletionStage;
