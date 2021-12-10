@@ -56,10 +56,11 @@ public class AverageHttpResponseTimeApp {
     private static Flow<HttpRequest, HttpResponse, NotUsed> flowHttpRequest(
             ActorMaterializer materializer, ActorRef actor
     ) {
+        System.out.println("1");
         return Flow.of(HttpRequest.class)
                 .map(req -> {
                     Query query = req.getUri().query();
-                    System.out.println("1");
+                    System.out.println("2");
                     return new Pair<>(
                             query.get("testUrl").get(),
                             Integer.parseInt(query.get("count").get())
