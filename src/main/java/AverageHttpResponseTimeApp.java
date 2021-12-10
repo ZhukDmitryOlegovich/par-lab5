@@ -15,6 +15,7 @@ import akka.http.javadsl.model.HttpResponse;
 import akka.japi.Pair;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
 
@@ -56,7 +57,11 @@ public class AverageHttpResponseTimeApp {
                                 java.time.Duration.ofMillis(5000)
                         )
                                 .thenCompose(res -> {
-                                    
+                                    if (((Optional<Long>) res).isPresent()) {
+
+                                    } else {
+                                        
+                                    }
                                 })
                         ))
     }
