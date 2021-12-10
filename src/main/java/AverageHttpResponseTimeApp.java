@@ -40,7 +40,7 @@ public class AverageHttpResponseTimeApp {
 
         final Http http = Http.get(system);
         final ActorMaterializer materializer = ActorMaterializer.create(system);
-        final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = null;// <вызов метода которому передаем Http, ActorSystem и ActorMaterializer>;
+        final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = flowHttpRequest(materializer, actor);
         final CompletionStage<ServerBinding> binding = http.bindAndHandle(
                 routeFlow,
                 ConnectHttp.toHost("localhost", 8080),
@@ -61,8 +61,8 @@ public class AverageHttpResponseTimeApp {
                     Query query = req.getUri().query();
                     return new Pair<>(
                             query.get("testUrl").get(),
-                            Integer.parseInt(query.get("count").get()
-                            );
+                            Integer.parseInt(query.get("count").get())
+                    );
                 })
                 .mapAsync(1, req -> Patterns
                         .ask(
