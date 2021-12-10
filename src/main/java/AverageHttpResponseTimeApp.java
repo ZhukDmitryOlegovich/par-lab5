@@ -47,11 +47,17 @@ public class AverageHttpResponseTimeApp {
                     Query query = req.getUri().query();
                     String url = query.get("testUrl").get();
                     int count = Integer.parseInt(query.get("count").get());
-                    return new Pair(url, count);
+                    return new Pair<>(url, count);
                 })
                 .mapAsync(1, req ->
                         Patterns.ask(
                                 actor,
+                                new MessageGetResult(req.first()),
+                                java.time.Duration.ofMillis(5000)
+                        )
+                                .thenCompose(res -> {
+                                    
+                                })
                         ))
     }
 }
