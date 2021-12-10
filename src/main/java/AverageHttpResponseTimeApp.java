@@ -16,6 +16,7 @@ import akka.japi.Pair;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
 
@@ -50,19 +51,19 @@ public class AverageHttpResponseTimeApp {
                     int count = Integer.parseInt(query.get("count").get());
                     return new Pair<>(url, count);
                 })
-                .mapAsync(1, req ->
-                        Patterns.ask(
+                .mapAsync(1, req -> Patterns
+                        .ask(
                                 actor,
                                 new MessageGetResult(req.first()),
                                 java.time.Duration.ofMillis(5000)
                         )
-                                .thenCompose(res -> {
-                                    if (((Optional<Long>) res).isPresent()) {
+                        .thenCompose(res -> {
+                            if (((Optional<Long>) res).isPresent()) {
+                                return CompletableFuture.completedFuture(new Pair<>(req.first(), ((Optional<Long>) res).get()));
+                            } else {
 
-                                    } else {
-                                        
-                                    }
-                                })
-                        ))
+                            }
+                        })
+                ))
     }
 }
