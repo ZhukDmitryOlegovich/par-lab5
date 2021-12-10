@@ -5,19 +5,21 @@ import akka.actor.Props;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Query;
+
+import akka.japi.Pair;
+
 import akka.japi.function.Function2;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
-
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.HttpResponse;
-import akka.japi.Pair;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import org.asynchttpclient.Dsl;
+
 import org.asynchttpclient.Request;
 import org.asynchttpclient.Response;
 
@@ -27,7 +29,6 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.regex.Pattern;
 
 public class AverageHttpResponseTimeApp {
     public static void main(String[] args) throws IOException {
