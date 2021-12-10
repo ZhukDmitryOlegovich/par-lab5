@@ -59,9 +59,10 @@ public class AverageHttpResponseTimeApp {
         return Flow.of(HttpRequest.class)
                 .map(req -> {
                     Query query = req.getUri().query();
-                    String url = query.get("testUrl").get();
-                    int count = Integer.parseInt(query.get("count").get());
-                    return new Pair<>(url, count);
+                    return new Pair<>(
+                            query.get("testUrl").get(),
+                            Integer.parseInt(query.get("count").get()
+                            );
                 })
                 .mapAsync(1, req -> Patterns
                         .ask(
@@ -71,27 +72,29 @@ public class AverageHttpResponseTimeApp {
                         )
                         .thenCompose(res -> {
                             if (((Optional<Long>) res).isPresent()) {
-                                return CompletableFuture.completedFuture(new Pair<>(req.first(), ((Optional<Long>) res).get()));
-                            } else {
-                                Sink<Integer, CompletionStage<Long>> fold = Sink.fold(0L, (Function2<Long, Integer, Long>) Long::sum);
-                                Sink<Pair<String, Integer>, CompletionStage<Long>> sink = Flow
-                                        .<Pair<String, Integer>>create()
-                                        .mapConcat(r -> new ArrayList<>(Collections.nCopies(r.second(), r.first())))
-                                        .mapAsync(req.second(), url -> {
-                                            long start = System.currentTimeMillis();
-                                            Request request = Dsl.get(url).build();
-                                            CompletableFuture<Response> whenResponse = Dsl.asyncHttpClient().executeRequest(request).toCompletableFuture();
-                                            return whenResponse.thenCompose(response -> {
-                                                int duration = (int) (System.currentTimeMillis() - start);
-                                                return CompletableFuture.completedFuture(duration);
-                                            });
-                                        })
-                                        .toMat(fold, Keep.right());
-                                return Source.from(Collections.singletonList(req))
-                                        .toMat(sink, Keep.right())
-                                        .run(materializer)
-                                        .thenApply(sum -> new Pair<>(req.first(), sum / req.second()));
+                                return CompletableFuture.completedFuture(
+                                        new Pair<>(req.first(), ((Optional<Long>) res).get())
+                                );
                             }
+                            Sink<Pair<String, Integer>, CompletionStage<Long>> sink = Flow
+                                    .<Pair<String, Integer>>create()
+                                    .mapConcat(r -> new ArrayList<>(Collections.nCopies(r.second(), r.first())))
+                                    .mapAsync(req.second(), url -> {
+                                        long start = System.currentTimeMillis();
+                                        Request request = Dsl.get(url).build();
+                                        return Dsl.asyncHttpClient().executeRequest(request).toCompletableFuture()
+                                                .thenCompose(response -> CompletableFuture.completedFuture(
+                                                        (int) (System.currentTimeMillis() - start))
+                                                );
+                                    })
+                                    .toMat(
+                                            Sink.fold(0L, (Function2<Long, Integer, Long>) Long::sum),
+                                            Keep.right()
+                                    );
+                            return Source.from(Collections.singletonList(req))
+                                    .toMat(sink, Keep.right())
+                                    .run(materializer)
+                                    .thenApply(sum -> new Pair<>(req.first(), sum / req.second()));
                         })
                 )
                 .map(res -> {
