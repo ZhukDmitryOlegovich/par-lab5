@@ -6,6 +6,7 @@ import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.Query;
+import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
 
@@ -15,6 +16,7 @@ import akka.japi.Pair;
 
 import java.io.IOException;
 import java.util.concurrent.CompletionStage;
+import java.util.regex.Pattern;
 
 public class AverageHttpResponseTimeApp {
     public static void main(String[] args) throws IOException {
@@ -47,6 +49,9 @@ public class AverageHttpResponseTimeApp {
                     int count = Integer.parseInt(query.get("count").get());
                     return new Pair(url, count);
                 })
-                .mapAsync()
+                .mapAsync(1, req ->
+                        Patterns.ask(
+                                actor,
+                        ))
     }
 }
