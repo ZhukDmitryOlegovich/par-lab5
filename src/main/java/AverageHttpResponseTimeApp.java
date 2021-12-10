@@ -5,11 +5,13 @@ import akka.actor.Props;
 import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.model.Query;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import jdk.internal.util.xml.impl.Pair;
 
 import java.io.IOException;
 import java.util.concurrent.CompletionStage;
@@ -39,6 +41,11 @@ public class AverageHttpResponseTimeApp {
             ActorMaterializer materializer, ActorRef actor
     ) {
         return Flow.of(HttpRequest.class)
-
+                .map(req -> {
+                    Query query = req.getUri().query();
+                    String url = query.get("testUrl").get();
+                    int count = Integer.parseInt(query.get("count").get());
+                    return new Pair(url, count);
+                })
     }
 }
