@@ -59,6 +59,7 @@ public class AverageHttpResponseTimeApp {
         return Flow.of(HttpRequest.class)
                 .map(req -> {
                     Query query = req.getUri().query();
+                    System.out.println("1");
                     return new Pair<>(
                             query.get("testUrl").get(),
                             Integer.parseInt(query.get("count").get())
