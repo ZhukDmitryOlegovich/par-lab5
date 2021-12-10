@@ -30,8 +30,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import static scala.None.map;
-
 public class AverageHttpResponseTimeApp {
     public static void main(String[] args) throws IOException {
         System.out.println("start!");
