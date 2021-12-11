@@ -11,7 +11,6 @@ import akka.http.javadsl.model.Query;
 
 import akka.japi.Pair;
 
-import akka.japi.function.Function2;
 import akka.pattern.Patterns;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
@@ -31,9 +30,24 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class AverageHttpResponseTimeApp {
+    private static final String ACTOR_NAME = "routes";
+
+    private static final String URL_TEST_URL = "testUrl";
+    private static final String URL_COUNT = "count";
+
+    private static final int TIMEOUT_MILLISECONDS = 5000;
+    private static final int MAP_PARALLELISM = 1;
+
+    private static final String HOST = "localhost";
+    private static final int PORT = 8080;
+
+    private static final String MESSAGE_SERVER_WAIT = "Wait, the server is starting...";
+    private static final String FORMAT_SERVER_START = "Server online at http://%s:%d/\nPress ENTER to stop...\n";
+    private static final String FORMAT_RESULT = "%4d %s\n";
+
     public static void main(String[] args) throws IOException {
-        System.out.println("start!");
-        ActorSystem system = ActorSystem.create("routes");
+        System.out.println(MESSAGE_SERVER_WAIT);
+        ActorSystem system = ActorSystem.create(ACTOR_NAME);
         ActorRef actor = system.actorOf(Props.create(ActorCache.class));
 
         final Http http = Http.get(system);
@@ -41,10 +55,14 @@ public class AverageHttpResponseTimeApp {
         final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = flowHttpRequest(materializer, actor);
         final CompletionStage<ServerBinding> binding = http.bindAndHandle(
                 routeFlow,
-                ConnectHttp.toHost("localhost", 8080),
+                ConnectHttp.toHost(HOST, PORT),
                 materializer
         );
-        System.out.println("Server online at http://localhost:8080/\nPress RETURN to stop...");
+        System.out.printf(
+                FORMAT_SERVER_START,
+                HOST,
+                PORT
+        );
         System.in.read();
         binding
                 .thenCompose(ServerBinding::unbind)
@@ -54,26 +72,23 @@ public class AverageHttpResponseTimeApp {
     private static Flow<HttpRequest, HttpResponse, NotUsed> flowHttpRequest(
             ActorMaterializer materializer, ActorRef actor
     ) {
-        System.out.println("1");
         return Flow.of(HttpRequest.class)
                 .map(req -> {
                     Query query = req.getUri().query();
-                    System.out.println("2");
                     return new Pair<>(
-                            query.get("testUrl").get(),
-                            Integer.parseInt(query.get("count").get())
+                            query.get(URL_TEST_URL).get(),
+                            Integer.parseInt(query.get(URL_COUNT).get())
                     );
                 })
-                .mapAsync(1, req -> Patterns
-                        .ask(
+                .mapAsync(MAP_PARALLELISM, req -> Patterns.ask(
                                 actor,
                                 new MessageGetResult(req.first()),
-                                java.time.Duration.ofMillis(5000)
-                        )
+                                java.time.Duration.ofMillis(TIMEOUT_MILLISECONDS))
                         .thenCompose(res -> {
-                            if (((Optional<Long>) res).isPresent()) {
+                            Optional<Long> optionalRes = (Optional<Long>) res;
+                            if (optionalRes.isPresent()) {
                                 return CompletableFuture.completedFuture(
-                                        new Pair<>(req.first(), ((Optional<Long>) res).get())
+                                        new Pair<>(req.first(), optionalRes.get())
                                 );
                             }
                             Sink<Pair<String, Integer>, CompletionStage<Long>> sink = Flow
@@ -81,16 +96,14 @@ public class AverageHttpResponseTimeApp {
                                     .mapConcat(r -> new ArrayList<>(Collections.nCopies(r.second(), r.first())))
                                     .mapAsync(req.second(), url -> {
                                         long start = System.currentTimeMillis();
-                                        Request request = Dsl.get(url).build();
-                                        return Dsl.asyncHttpClient().executeRequest(request).toCompletableFuture()
+                                        return Dsl.asyncHttpClient()
+                                                .executeRequest(Dsl.get(url).build())
+                                                .toCompletableFuture()
                                                 .thenCompose(response -> CompletableFuture.completedFuture(
-                                                        (int) (System.currentTimeMillis() - start))
-                                                );
+                                                        System.currentTimeMillis() - start
+                                                ));
                                     })
-                                    .toMat(
-                                            Sink.fold(0L, (Function2<Long, Integer, Long>) Long::sum),
-                                            Keep.right()
-                                    );
+                                    .toMat(Sink.fold(0L, Long::sum), Keep.right());
                             return Source.from(Collections.singletonList(req))
                                     .toMat(sink, Keep.right())
                                     .run(materializer)
@@ -102,7 +115,13 @@ public class AverageHttpResponseTimeApp {
                             new MessageCacheResult(res.first(), res.second()),
                             ActorRef.noSender()
                     );
-                    return HttpResponse.create().withEntity(res.first() + ": " + res.second().toString());
+                    String message = String.format(
+                            FORMAT_RESULT,
+                            res.second(),
+                            res.first()
+                    );
+                    System.out.print(message);
+                    return HttpResponse.create().withEntity(message);
                 });
     }
 }
